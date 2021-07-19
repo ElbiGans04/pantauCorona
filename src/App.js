@@ -149,7 +149,7 @@ function Main(props) {
 
           // Awal
 
-          <React.Fragment>
+          <MainComponentMain>
             <MainHeader>
               <MainHeading>Nama</MainHeading>
               <MainHeading>Positif</MainHeading>
@@ -171,7 +171,7 @@ function Main(props) {
                 })
               }
             </MainMain>
-          </React.Fragment>
+          </MainComponentMain>
 
           // Akhir
 
@@ -210,6 +210,13 @@ const Container = styled.div`
   display: grid;
   gap: 1rem;
   box-sizing: border-box;
+
+  @media (max-width: 576px) {
+    & {
+      height: 100%;
+      overflow: auto;
+    }
+  }
 `;
 
 const HeaderContainer = styled.div`
@@ -223,14 +230,34 @@ const HeaderHeader = styled.div`
   align-items: center;
   h1 {
     color: white;
-  }
+  };
+
+  @media (max-width: 576px) {
+    & {
+      flex-wrap: wrap;
+      justify-content: center;
+    };
+  };  
 `;
 
 const HeaderMain = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 0.5rem;
   justify-content: center;
+
+  @media (max-width: 992px) {
+    & {
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    }
+  }
+
+  @media (max-width: 768px) {
+    & {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+  }
+  
 `;
 
 const HeaderLastUpdate = styled(Box)`
@@ -252,24 +279,43 @@ const Card = styled(Box)`
   .main-content {
     margin-left: 0.5rem;
     font-size: 1.5rem;
-  }
+  };
 
   .kasus {
     font-size: 2.5rem;
-  }
+  };
+
+ @media (max-width: 992px) {
+    .icon {
+      font-size: 2rem;
+    };
+
+    .main-content {
+      margin-left: 0.5rem;
+      font-size: 1.3rem;
+    };
+
+    .kasus {
+      font-size: 2rem;
+    };
+  } ;
+
+ @media (max-width: 768px) {
+    .icon {
+      font-size: 1.5rem;
+    };
+
+    .main-content {
+      margin-left: 0.5rem;
+      font-size: 1rem;
+    };
+
+    .kasus {
+      font-size: 1.5rem;
+    };
+  } 
 `;
 
-const FooterComponent = styled.div`
-  color: white;
-  padding: 0.5rem;
-  display: flex;
-  justify-content: center;
-
-  a {
-    text-decoration: underline;
-    color: white;
-  }
-`;
 
 const Toggle = styled.div`
   display: flex;
@@ -287,17 +333,62 @@ const Toggle = styled.div`
 
 const ToggleParent = styled.div`
   display: flex;
+  @media (max-width: 576px) {
+    & {
+      justify-content: space-between;
+      width: 100%;
+    }
+  }
 `;
 
 const MainComponent = styled(Box)`
-  position: relative;
-  display: grid;
-  overflow: hidden;
+  overflow: auto;
+  width: 100%;
+  height: 100%;
   padding: 1rem;
+  box-sizing: border-box;
+
+  &::-webkit-scrollbar {
+    width: 10px;
+  };
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  };
+
+  &::-webkit-scrollbar-thumb {
+    background: #888;
+  };
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  };
+`;
+
+const MainComponentMain = styled.div`
+  width: 100%;
+  height: 100%;
+  display: grid;
+  overflow: auto;
+  
+
+  @media (max-width: 576px) {
+    & {
+      width: 200%;
+  };
+
 `;
 
 const MainHeading = styled.span`
   font-size: 2rem;
+  padding: 0;
+  margin: 0;
+
+  @media (max-width: 768px) {
+    & {
+      font-size: 1.5rem;
+    }
+  }
 `;
 
 
@@ -307,12 +398,9 @@ const MainHeader = styled.div`
   width: 100%;
   justify-items: center;
   align-items: center;
-  padding: .5rem;
-  
 `;
 
 const MainMain = styled.div`
-  padding: .5rem;
   overflow: auto;
   gap: 0 0.5rem;
   width: 100%;
@@ -323,20 +411,35 @@ const MainMain = styled.div`
     justify-items: center;
     align-items: center;
   }
+
+
   &::-webkit-scrollbar {
     width: 10px;
-  }
+  };
 
   &::-webkit-scrollbar-track {
     background: #f1f1f1;
-  }
+  };
 
   &::-webkit-scrollbar-thumb {
     background: #888;
-  }
+  };
 
   &::-webkit-scrollbar-thumb:hover {
     background: #555;
-  }
+  };
   
+`;
+
+
+const FooterComponent = styled.div`
+  color: white;
+  padding: 0.5rem;
+  display: flex;
+  justify-content: center;
+
+  a {
+    text-decoration: underline;
+    color: white;
+  }
 `;
