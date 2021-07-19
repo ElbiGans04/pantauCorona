@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import Switch from "./Switch.js";
 import country from './listCountry.js';
 
 function App() {
+  const [mode, setMode] = useState(false);
   return (
     <Container>
-      <Header></Header>
+      <Header mode={mode} setMode={setMode}></Header>
       <Main></Main>
       <Footer></Footer>
     </Container>
@@ -16,10 +17,9 @@ function App() {
 export default App;
 
 // Component
-function Header() {
+function Header({mode, setMode}) {
   const [value, setValue] = useState(false);
-  const [mode, setMode] = useState(false);
-  let [results, setResult] = useState({});
+  const [results, setResult] = useState({});
   const lastUpdate = results.lastUpdate ? new Date(results.lastUpdate) : null;
 
   useEffect(() => {
@@ -109,13 +109,20 @@ function Header() {
 
 function Main(props) {
   const [results, setResults] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+
+    // Set Loading State
+    setLoading(true)
+
+
     const countryPromises = country.countries.map((el) => fetch(`https://covid19.mathdro.id/api/countries/${el.name}`));
     Promise.all(countryPromises).then(result => {
       const resultsJson = result.map(value => value.json());
       Promise.all(resultsJson).then(value => {
         setResults(value);
+        setLoading(false)
       }).catch(err => console.error("Error Pas Json"))
     }).catch(err => console.error("Error bro"));
   }, [])
@@ -124,27 +131,43 @@ function Main(props) {
   
   return (
     <MainComponent>
-      <MainHeader>
-        <MainHeading>Nama</MainHeading>
-        <MainHeading>Positif</MainHeading>
-        <MainHeading>Sembuh</MainHeading>
-        <MainHeading>Meninggal</MainHeading>
-      </MainHeader>
-      <MainMain>
-        {
-          results && results.map((val, idx) => {
-            // console.log(val, country.countries[idx]);
-            return (
-              <div>
-                <span>{country.countries[idx].name}</span>
-                <span>{val.confirmed.value.toLocaleString()}</span>
-                <span>{val.recovered.value.toLocaleString()}</span>
-                <span>{val.deaths.value.toLocaleString()}</span>
-              </div>
-            )
-          })
-        }
-      </MainMain>
+      {
+        loading ? <div className="loader"></div> : (
+
+
+          // Awal
+
+          <React.Fragment>
+            <MainHeader>
+              <MainHeading>Nama</MainHeading>
+              <MainHeading>Positif</MainHeading>
+              <MainHeading>Sembuh</MainHeading>
+              <MainHeading>Meninggal</MainHeading>
+            </MainHeader>
+            <MainMain>
+              {
+                results && results.map((val, idx) => {
+                  // console.log(val, country.countries[idx]);
+                  return (
+                    <div>
+                      <span>{country.countries[idx].name}</span>
+                      <span>{val.confirmed.value.toLocaleString()}</span>
+                      <span>{val.recovered.value.toLocaleString()}</span>
+                      <span>{val.deaths.value.toLocaleString()}</span>
+                    </div>
+                  )
+                })
+              }
+            </MainMain>
+          </React.Fragment>
+
+          // Akhir
+
+
+
+
+        )
+      }
     </MainComponent>
   );
 }
@@ -156,26 +179,6 @@ function Footer(props) {
     </FooterComponent>
   );
 }
-
-// const Switch = ({ isOn, handleToggle }) => {
-//   return (
-//     <>
-//       <input
-//         checked={isOn}
-//         onChange={handleToggle}
-//         className="react-switch-checkbox"
-//         id={`react-switch-new`}
-//         type="checkbox"
-//       />
-//       <label
-//         className="react-switch-label"
-//         htmlFor={`react-switch-new`}
-//       >
-//         <span className={`react-switch-button`} />
-//       </label>
-//     </>
-//   );
-// };
 
 // Style Component
 const Box = styled.div`
@@ -292,9 +295,12 @@ const MainHeader = styled.div`
   width: 100%;
   justify-items: center;
   align-items: center;
+  padding: .5rem;
+  border-bottom: 1px solid black;
 `;
 
 const MainMain = styled.div`
+  padding: .5rem;
   overflow: auto;
   gap: 0 0.5rem;
   width: 100%;
