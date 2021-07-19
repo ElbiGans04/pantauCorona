@@ -113,18 +113,30 @@ function Main(props) {
 
   useEffect(() => {
 
+
     // Set Loading State
-    setLoading(true)
+    setLoading(true);
+
+    // Check Data dilocal
+    const dataLocal = localStorage.getItem('country');
 
 
-    const countryPromises = country.countries.map((el) => fetch(`https://covid19.mathdro.id/api/countries/${el.name}`));
-    Promise.all(countryPromises).then(result => {
-      const resultsJson = result.map(value => value.json());
-      Promise.all(resultsJson).then(value => {
-        setResults(value);
-        setLoading(false)
-      }).catch(err => console.error("Error Pas Json"))
-    }).catch(err => console.error("Error bro"));
+    // Check APakah sebelumnya datanya kita cadangkan
+    if(dataLocal) {
+      setResults(JSON.parse(dataLocal));
+      setLoading(false);
+    } else {
+      const countryPromises = country.countries.map((el) => fetch(`https://covid19.mathdro.id/api/countries/${el.name}`));
+      Promise.all(countryPromises).then(result => {
+        const resultsJson = result.map(value => value.json());
+        Promise.all(resultsJson).then(value => {
+          setResults(value);
+          setLoading(false);
+          localStorage.setItem('country', JSON.stringify(value));
+  
+        }).catch(err => console.error("Error Pas Json"))
+      }).catch(err => console.error("Error bro"));
+    }
   }, [])
 
   
@@ -296,7 +308,7 @@ const MainHeader = styled.div`
   justify-items: center;
   align-items: center;
   padding: .5rem;
-  border-bottom: 1px solid black;
+  
 `;
 
 const MainMain = styled.div`
