@@ -137,7 +137,7 @@ function Header({mode, setMode}) {
       <HeaderLastUpdate>
         Last Update{" "}
         {lastUpdate &&
-          `${lastUpdate.getHours()}:${lastUpdate.getMinutes()}:${lastUpdate.getSeconds()} ${lastUpdate.getDate()}-${
+          `${lastUpdate.getHours()}:${lastUpdate.getMinutes()}:${lastUpdate.getSeconds()}   ${lastUpdate.getDate()}-${
             lastUpdate.getMonth() + 1
           }-${lastUpdate.getFullYear()}`}
       </HeaderLastUpdate>
@@ -151,30 +151,58 @@ function Main(props) {
 
   useEffect(() => {
 
+    async function fetchData() {
 
-    // Set Loading State
-    setLoading(true);
+      try {
+        // Set Loading State
+        setLoading(true);
+    
+        // Check Data dilocal
+        const dataLocal = localStorage.getItem('country');
+        const lastUpdate = localStorage.getItem('last-update');
+    
+    
+        // Fetch Data Awal
+        const {lastUpdate: dataLastUpdate} = await (await fetch(`https://covid19.mathdro.id/api/countries/Afghanistan`)).json();
+       
+    
+        // Jika data nya lastUpdate
+        if(dataLastUpdate === lastUpdate && dataLocal) {
+            setResults(JSON.parse(dataLocal));
+            setLoading(false);
+            return;
+        };
 
-    // Check Data dilocal
-    const dataLocal = localStorage.getItem('country');
+    
+        // Jika memang harus diupdate
+        const countryPromises = country.countries.map( el => fetch(`https://covid19.mathdro.id/api/countries/${el.name}`));
 
+        // Tunggu Semua selesai
+        const resultsCountry = await Promise.all(countryPromises);
 
-    // Check APakah sebelumnya datanya kita cadangkan
-    if(dataLocal) {
-      setResults(JSON.parse(dataLocal));
-      setLoading(false);
-    } else {
-      const countryPromises = country.countries.map((el) => fetch(`https://covid19.mathdro.id/api/countries/${el.name}`));
-      Promise.all(countryPromises).then(result => {
-        const resultsJson = result.map(value => value.json());
-        Promise.all(resultsJson).then(value => {
-          setResults(value);
-          setLoading(false);
-          localStorage.setItem('country', JSON.stringify(value));
+        // covert ke json
+        const resultsCountryJson = resultsCountry.map(result => result.json());
+
+        // Tunggu
+        const finalResults = await Promise.all(resultsCountryJson);
+        
+        // setel State dan localstroage
+        setResults(finalResults);
+        setLoading(false);
+        localStorage.setItem('last-update', finalResults[0].lastUpdate)
+        localStorage.setItem('country', JSON.stringify(finalResults));
   
-        }).catch(err => console.error("Error Pas Json"))
-      }).catch(err => console.error("Error bro"));
-    }
+
+      } catch (err) {
+        alert("Ada Error bos. detailnya ada di console.log");
+        console.error(err);
+      };
+
+    }; 
+
+    fetchData();
+
+
   }, [])
 
   
