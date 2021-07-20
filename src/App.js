@@ -1,16 +1,44 @@
-import React, { useState, useEffect } from "react";
-import styled from "styled-components";
+import React, { useState, useEffect} from "react";
+import styled, {ThemeProvider, createGlobalStyle} from "styled-components";
 import Switch from "./Switch.js";
 import country from './listCountry.js';
+
+
+const theme = {
+  dark: {
+    box : {
+      backgroundColor: `rgb(30, 35, 53)`
+    },
+
+    container : {
+      backgroundColor: `rgb(23, 25, 36)`,
+      color: `white`
+    }
+  },
+
+  light: {
+    box : {
+      backgroundColor: `rgb(236, 227, 227)`
+    },
+    container : {
+      backgroundColor: `white`,
+      color: `black`,
+      boxShaddow: `0px 0px 8px rgba(0,0,0,.8)`
+    }
+  }
+};
 
 function App() {
   const [mode, setMode] = useState(false);
   return (
-    <Container>
-      <Header mode={mode} setMode={setMode}></Header>
-      <Main></Main>
-      <Footer></Footer>
-    </Container>
+    <ThemeProvider theme={mode ? theme.light : theme.dark}>
+      <GlobalStyle />
+      <Container>
+        <Header mode={mode} setMode={setMode}></Header>
+        <Main></Main>
+        <Footer></Footer>
+      </Container>
+    </ThemeProvider>
   );
 }
 
@@ -193,30 +221,37 @@ function Footer(props) {
 }
 
 // Style Component
+const GlobalStyle = createGlobalStyle`
+  body {
+    background-color: ${({theme}) => theme.box.backgroundColor};
+  }
+`;
+
 const Box = styled.div`
-  color: white;
-  background-color: rgb(30, 35, 53);
   border: 1px solid black;
   border-radius: 0.8rem;
+  background-color: ${({theme}) => theme.box.backgroundColor}
 `;
+
 
 const Container = styled.div`
   width: 90%;
   margin: 0.8rem auto;
-  background-color: rgb(23, 25, 36);
   border-radius: 0.8rem;
   padding: 1.5rem;
   height: 90vh;
   display: grid;
   gap: 1rem;
   box-sizing: border-box;
-
+  background-color: ${({theme}) => theme.container.backgroundColor};
+  color: ${({theme}) => theme.container.color};
   @media (max-width: 576px) {
     & {
       height: 100%;
       overflow: auto;
     }
-  }
+  };
+  box-shadow: ${({theme}) => theme.container.boxShaddow};
 `;
 
 const HeaderContainer = styled.div`
@@ -228,9 +263,6 @@ const HeaderHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  h1 {
-    color: white;
-  };
 
   @media (max-width: 576px) {
     & {
@@ -433,13 +465,12 @@ const MainMain = styled.div`
 
 
 const FooterComponent = styled.div`
-  color: white;
   padding: 0.5rem;
   display: flex;
   justify-content: center;
 
   a {
     text-decoration: underline;
-    color: white;
+    color: ${({theme}) => theme.container.color};
   }
 `;
