@@ -33,6 +33,7 @@ function AppReducer (state, action) {
         ...state,
         status: {
           ...state.status,
+          fetch: false,
           type: 'loading'
         },
       }
@@ -42,6 +43,7 @@ function AppReducer (state, action) {
         ...state,
         status: {
           message: action.payload.message,
+          fetch: false,
           type: 'error'
         },
       }
@@ -51,7 +53,17 @@ function AppReducer (state, action) {
         data: action.payload.data,
         status: {
           ...state.status,
+          fetch: false,
           type: 'success'
+        },
+      }
+    }
+    case 'refetch' : {
+      return {
+        ...state,
+        status: {
+          ...state.status,
+          fetch: true,
         },
       }
     }
@@ -60,6 +72,7 @@ function AppReducer (state, action) {
         ...state,
         status: {
           ...state.status,
+          fetch: false,
           type: 'iddle'
         },
       }
@@ -78,6 +91,7 @@ function App() {
     status: {
       type: 'iddle', // iddle, loading, error success,
       message: null,
+      fetch: true,
     },
     data: null,
   })
@@ -89,14 +103,16 @@ function App() {
 
   // requestData
   useEffect(() => {
-    let controller = new AbortController();
+    // let controller = new AbortController();
     async function fetchData() {
       try {
         dispatch({type: 'loading'});
         let data = await (
           await fetch(
             "https://api.apify.com/v2/key-value-stores/tVaYRsPHLjNdNBu7S/records/LATEST?disableRedirect=true",
-            { method: "get", signal: controller.signal }
+            { method: "get", 
+            // signal: controller.signal 
+          }
           )
         ).json();
           
@@ -107,18 +123,19 @@ function App() {
       }
     }
     
-    fetchData();
-    return () => {
-      controller.abort();
-    }
-  }, [dispatch]);
+    console.log(data.status, "STATUS")
+    if (data.status.type !== "loading" && data.status.fetch) fetchData();
+    // return () => {
+    //   controller.abort();
+    // }
+  }, [data.status, dispatch]);
 
   return (
     <ThemeProvider theme={mode ? theme.light : theme.dark}>
       <GlobalStyle />
       <Container>
         <Header data={data.data} mode={mode} setMode={setMode}></Header>
-        <Main data={data.data} status={data.status}></Main>
+        <Main data={data.data} status={data.status} dispatch={dispatch}></Main>
         <Footer></Footer>
       </Container>
     </ThemeProvider>
@@ -204,7 +221,7 @@ const Header = React.memo(function Header({ data, mode, setMode }) {
   );
 });
 
-const Main = React.memo(function Main({status, data}) {
+const Main = React.memo(function Main({status, data, dispatch}) {
   switch (status.type) {
     case 'loading' : {
       return (
@@ -221,7 +238,7 @@ const Main = React.memo(function Main({status, data}) {
             <MainComponentMainAnother>
               <h1>Terdapat Error saat melakukan data {':('}</h1>
               <p>{"Penyebab Error : "}{status.message}</p>
-              <button onClick={() => console.log("Request Ulang")}>Klik disini untuk Coba Lagi</button>
+              <button onClick={() => dispatch({type: 'refetch'})}>Klik disini untuk Coba Lagi</button>
             </MainComponentMainAnother>
           </MainComponentMain>
         </MainComponent>
