@@ -292,7 +292,7 @@ const Main = React.memo(function Main({status, data, dispatch}) {
 const Footer = React.memo(function Footer() {
   return (
     <FooterComponent>
-      Made By ♥ by <a href="https://elbi.vercel.app">{"  "}Rhafael Bijaksana</a>
+      Made By ♥
     </FooterComponent>
   );
 })
