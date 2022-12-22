@@ -1,51 +1,124 @@
-import React, { useState, useEffect} from "react";
-import styled, {ThemeProvider, createGlobalStyle} from "styled-components";
+import React, { useState, useEffect, useMemo, useReducer } from "react";
+import styled, { ThemeProvider, createGlobalStyle } from "styled-components";
 import Switch from "./Switch.js";
-import country from './listCountry.js';
-
 
 const theme = {
   dark: {
-    box : {
-      backgroundColor: `rgb(30, 35, 53)`
+    box: {
+      backgroundColor: `rgb(30, 35, 53)`,
     },
 
-    container : {
+    container: {
       backgroundColor: `rgb(23, 25, 36)`,
-      color: `white`
-    }
+      color: `white`,
+    },
   },
 
   light: {
-    box : {
-      backgroundColor: `rgb(236, 227, 227)`
+    box: {
+      backgroundColor: `rgb(236, 227, 227)`,
     },
-    container : {
+    container: {
       backgroundColor: `white`,
       color: `black`,
-      boxShaddow: `0px 0px 8px rgba(0,0,0,.8)`
+      boxShaddow: `0px 0px 8px rgba(0,0,0,.8)`,
+    },
+  },
+};
+
+function AppReducer (state, action) {
+  switch (action.type) {
+    case 'loading' : {
+      return {
+        ...state,
+        status: {
+          ...state.status,
+          type: 'loading'
+        },
+      }
     }
+    case 'error' : {
+      return {
+        ...state,
+        status: {
+          message: action.payload.message,
+          type: 'error'
+        },
+      }
+    }
+    case 'success' : {
+      return {
+        data: action.payload.data,
+        status: {
+          ...state.status,
+          type: 'success'
+        },
+      }
+    }
+    case 'iddle' : {
+      return {
+        ...state,
+        status: {
+          ...state.status,
+          type: 'iddle'
+        },
+      }
+    }
+    default :
+      return state;
   }
 };
 
-
 function App() {
   const [mode, setMode] = useState(() => {
-    const theme = localStorage.getItem('theme');
+    const theme = localStorage.getItem("theme");
     return theme === "true" ? true : false;
   });
+  const [data, dispatch] = useReducer(AppReducer, {
+    status: {
+      type: 'iddle', // iddle, loading, error success,
+      message: null,
+    },
+    data: null,
+  })
 
   // Masukan kedalam local
   useEffect(() => {
     localStorage.setItem("theme", mode ? "true" : "false");
   }, [mode]);
 
+  // requestData
+  useEffect(() => {
+    let controller = new AbortController();
+    async function fetchData() {
+      try {
+        dispatch({type: 'loading'});
+        let data = await (
+          await fetch(
+            "https://api.apify.com/v2/key-value-stores/tVaYRsPHLjNdNBu7S/records/LATEST?disableRedirect=true",
+            { method: "get", signal: controller.signal }
+          )
+        ).json();
+          
+        dispatch({type: 'success', payload: {data, message: 'Berhasil Mengambil data'}})
+      } catch (err) {
+        dispatch({type: 'error', payload: {message: err?.message || "ADA ERROR SAAT REQUEST"}});
+        console.error(err);
+      }
+    }
+    
+    fetchData();
+    return () => {
+      controller.abort();
+    }
+  }, [dispatch]);
+
   return (
     <ThemeProvider theme={mode ? theme.light : theme.dark}>
       <GlobalStyle />
       <Container>
-        <Header mode={mode} setMode={setMode}></Header>
-        <Main></Main>
+        <Header data={data.data} mode={mode} setMode={setMode}></Header>
+        <Main data={data.data} status={data.status}></Main>
         <Footer></Footer>
       </Container>
     </ThemeProvider>
@@ -55,33 +128,34 @@ function App() {
 export default App;
 
 // Component
-function Header({mode, setMode}) {
-  const [value, setValue] = useState(false);
-  const [results, setResult] = useState({});
-  const lastUpdate = results.lastUpdate ? new Date(results.lastUpdate) : null;
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        let url = value
-          ? "https://covid19.mathdro.id/api/"
-          : "https://covid19.mathdro.id/api/countries/indonesia";
-        let data = await (await fetch(url, { method: "get" })).json();
-        setResult(data);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    fetchData();
-  }, [value]);
+const Header = React.memo(function Header({ data, mode, setMode }) {
+  const dataDetail = useMemo(
+    () => !data ? { positif: 0, sembuh: 0, meninggal: 0 } :
+      data.reduce(
+        (prev, current) => {
+          return {
+            positif: Number.isInteger(current.infected)
+              ? prev.positif + current.infected
+              : prev.positif,
+            sembuh: Number.isInteger(current.recovered)
+              ? prev.sembuh + current.recovered
+              : prev.sembuh,
+            meninggal: Number.isInteger(current.deceased)
+              ? prev.meninggal + current.deceased
+              : prev.meninggal,
+          };
+        },
+        { positif: 0, sembuh: 0, meninggal: 0 }
+      ),
+    [data]
+  );
 
   return (
     <HeaderContainer>
       <HeaderHeader>
         <h1>Pantau Corona</h1>
         <ToggleParent>
-          <Toggle>
+          {/* <Toggle>
             <span className="first">Indonesia</span>
             <Switch
               isOn={value}
@@ -89,7 +163,7 @@ function Header({mode, setMode}) {
               id="fromData"
             />
             <span className="second">Global</span>
-          </Toggle>
+          </Toggle> */}
           <Toggle>
             <span className="first">🌙</span>
             <Switch isOn={mode} handleToggle={() => setMode(!mode)} id="mode" />
@@ -102,11 +176,7 @@ function Header({mode, setMode}) {
           <span className="icon">😷</span>
           <div className="main-content">
             <div className="title">Kasus Positif</div>
-            <div className="kasus">
-              {results?.confirmed?.value
-                ? results?.confirmed?.value?.toLocaleString()
-                : "-"}
-            </div>
+            <div className="kasus">{formatPrice(dataDetail.positif)}</div>
           </div>
         </Card>
 
@@ -114,11 +184,7 @@ function Header({mode, setMode}) {
           <span className="icon">😊</span>
           <div className="main-content">
             <div className="title">Kasus Sembuh</div>
-            <div className="kasus">
-              {results?.recovered?.value
-                ? results?.recovered?.value?.toLocaleString()
-                : "-"}
-            </div>
+            <div className="kasus">{formatPrice(dataDetail.sembuh)}</div>
           </div>
         </Card>
 
@@ -126,142 +192,103 @@ function Header({mode, setMode}) {
           <span className="icon">💀</span>
           <div className="main-content">
             <div className="title">Kasus Kematian</div>
-            <div className="kasus">
-              {results?.deaths?.value
-                ? results?.deaths?.value?.toLocaleString()
-                : "-"}
-            </div>
+            <div className="kasus">{formatPrice(dataDetail.meninggal)}</div>
           </div>
         </Card>
       </HeaderMain>
-      <HeaderLastUpdate>
+      {/* <HeaderLastUpdate>
         Last Update{" "}
-        {lastUpdate &&
-          `${lastUpdate.getHours()}:${lastUpdate.getMinutes()}:${lastUpdate.getSeconds()}   ${lastUpdate.getDate()}-${
-            lastUpdate.getMonth() + 1
-          }-${lastUpdate.getFullYear()}`}
-      </HeaderLastUpdate>
+        
+      </HeaderLastUpdate> */}
     </HeaderContainer>
   );
-}
+});
 
-function Main(props) {
-  const [results, setResults] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-
-    async function fetchData() {
-
-      try {
-        // Set Loading State
-        setLoading(true);
-    
-        // Check Data dilocal
-        const dataLocal = localStorage.getItem('country');
-        const lastUpdate = localStorage.getItem('last-update');
-    
-    
-        // Fetch Data Awal
-        const {lastUpdate: dataLastUpdate} = await (await fetch(`https://covid19.mathdro.id/api/countries/Afghanistan`)).json();
-       
-    
-        // Jika data nya lastUpdate
-        if(dataLastUpdate === lastUpdate && dataLocal) {
-            setResults(JSON.parse(dataLocal));
-            setLoading(false);
-            return;
-        };
-
-    
-        // Jika memang harus diupdate
-        const countryPromises = country.countries.map( el => fetch(`https://covid19.mathdro.id/api/countries/${el.name}`));
-
-        // Tunggu Semua selesai
-        const resultsCountry = await Promise.all(countryPromises);
-
-        // covert ke json
-        const resultsCountryJson = resultsCountry.map(result => result.json());
-
-        // Tunggu
-        const finalResults = await Promise.all(resultsCountryJson);
-        
-        // setel State dan localstroage
-        setResults(finalResults);
-        setLoading(false);
-        localStorage.setItem('last-update', finalResults[0].lastUpdate)
-        localStorage.setItem('country', JSON.stringify(finalResults));
-  
-
-      } catch (err) {
-        alert("Ada Error bos. detailnya ada di console.log");
-        console.error(err);
-      };
-
-    }; 
-
-    fetchData();
-
-
-  }, [])
-
-  
-  
-  return (
-    <MainComponent>
-      {
-        loading ? <div className="loader"></div> : (
-
-
-          // Awal
-
+const Main = React.memo(function Main({status, data}) {
+  switch (status.type) {
+    case 'loading' : {
+      return (
+        <MainComponent>
           <MainComponentMain>
-            <MainHeader>
-              <MainHeading>Nama</MainHeading>
-              <MainHeading>Positif</MainHeading>
-              <MainHeading>Sembuh</MainHeading>
-              <MainHeading>Meninggal</MainHeading>
-            </MainHeader>
-            <MainMain>
-              {
-                results && results.map((val, idx) => {
-                  // console.log(val, country.countries[idx]);
-                  return (
-                    <div>
-                      <span>{country.countries[idx].name}</span>
-                      <span>{val.confirmed.value.toLocaleString()}</span>
-                      <span>{val.recovered.value.toLocaleString()}</span>
-                      <span>{val.deaths.value.toLocaleString()}</span>
-                    </div>
-                  )
-                })
-              }
-            </MainMain>
+            <div className="loader"></div>
           </MainComponentMain>
-
-          // Akhir
-
-
-
-
+        </MainComponent>)
+    } 
+    case 'error' : {
+      return (
+        <MainComponent>
+          <MainComponentMain>
+            <MainComponentMainAnother>
+              <h1>Terdapat Error saat melakukan data {':('}</h1>
+              <p>{"Penyebab Error : "}{status.message}</p>
+              <button onClick={() => console.log("Request Ulang")}>Klik disini untuk Coba Lagi</button>
+            </MainComponentMainAnother>
+          </MainComponentMain>
+        </MainComponent>
+      )
+    }
+    case 'success' : {
+      // Jika data kosong (belum melakukan request, karena nilai defaultnya adalah null) atau panjang data == 0 
+      if (!data || (Array.isArray(data) && data.length === 0)) {  
+        return (
+          <MainComponent>
+            <MainComponentMain>
+              <MainComponentMainAnother>
+                <h1>{!data ? "Data Tidak ditemukan" : (Array.isArray(data) && data.length === 0) ? "Data Kosong" : "Ga bisa nampilin data"} {' :('}</h1>
+              </MainComponentMainAnother>
+            </MainComponentMain>
+          </MainComponent>
         )
       }
-    </MainComponent>
-  );
-}
 
-function Footer(props) {
+
+      return (<MainComponent>
+         <MainComponentMain>
+          <MainHeader>
+            <MainHeading>Nama</MainHeading>
+            <MainHeading>Positif</MainHeading>
+            <MainHeading>Sembuh</MainHeading>
+            <MainHeading>Meninggal</MainHeading>
+          </MainHeader>
+          <MainMain>
+            {data &&
+              data.map((val, idx) => {
+                return (
+                  <div key={`ITEM-${idx}-${idx + 10}`}>
+                    <span>{val.country}</span>
+                    <span>{(val.infected !== "NA" && val?.infected) ? formatPrice(val.infected) : '-'}</span>
+                    <span>{(val.recovered !== "NA" && val?.recovered) ? formatPrice(val.recovered) : '-'}</span>
+                    <span>{(val.deceased !== "NA" && val?.deceased) ? formatPrice(val.deceased) : '-'}</span>
+                  </div>
+                );
+              })}
+          </MainMain>
+        </MainComponentMain>
+      </MainComponent>)
+    }
+    default : {
+      return <></>
+    }
+  }
+})
+
+const Footer = React.memo(function Footer() {
   return (
     <FooterComponent>
       Made By ♥ by <a href="https://elbi.vercel.app">{"  "}Rhafael Bijaksana</a>
     </FooterComponent>
   );
+})
+
+function formatPrice(value) {
+  let val = Math.ceil(value).toFixed(0).replace('.',',');
+   return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
 }
 
 // Style Component
 const GlobalStyle = createGlobalStyle`
   body {
-    background-color: ${({theme}) => theme.box.backgroundColor};
+    background-color: ${({ theme }) => theme.box.backgroundColor};
   };
 
   .loader {
@@ -317,7 +344,7 @@ const GlobalStyle = createGlobalStyle`
   }
   
   .loader:after {
-    background: ${({theme}) => theme.box.backgroundColor};
+    background: ${({ theme }) => theme.box.backgroundColor};
     width: 75%;
     height: 75%;
     border-radius: 50%;
@@ -334,9 +361,8 @@ const GlobalStyle = createGlobalStyle`
 const Box = styled.div`
   border: 1px solid black;
   border-radius: 0.8rem;
-  background-color: ${({theme}) => theme.box.backgroundColor}
+  background-color: ${({ theme }) => theme.box.backgroundColor};
 `;
-
 
 const Container = styled.div`
   width: 90%;
@@ -347,15 +373,15 @@ const Container = styled.div`
   display: grid;
   gap: 1rem;
   box-sizing: border-box;
-  background-color: ${({theme}) => theme.container.backgroundColor};
-  color: ${({theme}) => theme.container.color};
+  background-color: ${({ theme }) => theme.container.backgroundColor};
+  color: ${({ theme }) => theme.container.color};
   @media (max-width: 576px) {
     & {
       height: 100%;
       overflow: auto;
     }
-  };
-  box-shadow: ${({theme}) => theme.container.boxShaddow};
+  }
+  box-shadow: ${({ theme }) => theme.container.boxShaddow};
 `;
 
 const HeaderContainer = styled.div`
@@ -372,8 +398,8 @@ const HeaderHeader = styled.div`
     & {
       flex-wrap: wrap;
       justify-content: center;
-    };
-  };  
+    }
+  } ;
 `;
 
 const HeaderMain = styled.div`
@@ -393,14 +419,13 @@ const HeaderMain = styled.div`
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     }
   }
-  
 `;
 
-const HeaderLastUpdate = styled(Box)`
-  padding: 0.5rem;
-  font-size: 1.3rem;
-  text-align: center;
-`;
+// const HeaderLastUpdate = styled(Box)`
+//   padding: 0.5rem;
+//   font-size: 1.3rem;
+//   text-align: center;
+// `;
 
 const Card = styled(Box)`
   padding: 0.5rem;
@@ -415,43 +440,42 @@ const Card = styled(Box)`
   .main-content {
     margin-left: 0.5rem;
     font-size: 1.5rem;
-  };
+  }
 
   .kasus {
     font-size: 2.5rem;
-  };
+  }
 
- @media (max-width: 992px) {
+  @media (max-width: 992px) {
     .icon {
       font-size: 2rem;
-    };
+    }
 
     .main-content {
       margin-left: 0.5rem;
       font-size: 1.3rem;
-    };
+    }
 
     .kasus {
       font-size: 2rem;
-    };
-  } ;
+    }
+  }
 
- @media (max-width: 768px) {
+  @media (max-width: 768px) {
     .icon {
       font-size: 1.5rem;
-    };
+    }
 
     .main-content {
       margin-left: 0.5rem;
       font-size: 1rem;
-    };
+    }
 
     .kasus {
       font-size: 1.5rem;
-    };
-  } 
+    }
+  }
 `;
-
 
 const Toggle = styled.div`
   display: flex;
@@ -486,19 +510,82 @@ const MainComponent = styled(Box)`
 
   &::-webkit-scrollbar {
     width: 10px;
-  };
+  }
 
   &::-webkit-scrollbar-track {
     background: #f1f1f1;
-  };
+  }
 
   &::-webkit-scrollbar-thumb {
     background: #888;
-  };
+  }
 
   &::-webkit-scrollbar-thumb:hover {
     background: #555;
-  };
+  }
+`;
+
+
+const MainComponentMainAnother = styled.div`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+
+  h1 {
+    font-size: 16px;
+  }
+
+  p {
+    font-family: 'Patrick Hand', cursive;
+    // font-size: 24px;
+    font-size: 16px;
+  }
+
+  h1, p {
+    margin: 0;
+  }
+
+  button {
+    background-color: transparent;
+    border: 0;
+    appearance: none;
+    color: white;
+    // font-size: 24px;
+    font-size: 16px;
+    text-decoration: underline;
+    cursor: pointer;
+    font-family: 'Patrick Hand', cursive;
+  }
+  
+  & button:hover {
+    text-decoration: none;
+  }
+
+  @media (min-width: 640px) {
+    h1, button, p {
+      font-size: 1.2em;
+    }
+  }
+
+  @media (min-width: 768px) {
+    h1 {
+      font-size: 1.5em;
+    }
+
+    button, p {
+      font-size: 24px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    h1 {
+      font-size: 2em;
+    }
+  }
 `;
 
 const MainComponentMain = styled.div`
@@ -506,6 +593,10 @@ const MainComponentMain = styled.div`
   height: 100%;
   display: grid;
   overflow: auto;
+
+  & h1 {
+    text-align: center;
+  }
   
 
   @media (max-width: 576px) {
@@ -527,7 +618,6 @@ const MainHeading = styled.span`
   }
 `;
 
-
 const MainHeader = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -548,25 +638,22 @@ const MainMain = styled.div`
     align-items: center;
   }
 
-
   &::-webkit-scrollbar {
     width: 10px;
-  };
+  }
 
   &::-webkit-scrollbar-track {
     background: #f1f1f1;
-  };
+  }
 
   &::-webkit-scrollbar-thumb {
     background: #888;
-  };
+  }
 
   &::-webkit-scrollbar-thumb:hover {
     background: #555;
-  };
-  
+  }
 `;
-
 
 const FooterComponent = styled.div`
   padding: 0.5rem;
@@ -575,6 +662,6 @@ const FooterComponent = styled.div`
 
   a {
     text-decoration: underline;
-    color: ${({theme}) => theme.container.color};
+    color: ${({ theme }) => theme.container.color};
   }
 `;
