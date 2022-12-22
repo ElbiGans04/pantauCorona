@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useMemo, useReducer } from "react";
 import styled, { ThemeProvider, createGlobalStyle } from "styled-components";
 import Switch from "./Switch.js";
+import Profile from "./profile";
+import {
+  BrowserRouter as Router,
+  Switch as SwitchRouter,
+  Link,
+  Route,
+  useRouteMatch,
+} from "react-router-dom";
 
 const theme = {
   dark: {
@@ -26,61 +34,61 @@ const theme = {
   },
 };
 
-function AppReducer (state, action) {
+function AppReducer(state, action) {
   switch (action.type) {
-    case 'loading' : {
+    case "loading": {
       return {
         ...state,
         status: {
           ...state.status,
           fetch: false,
-          type: 'loading'
+          type: "loading",
         },
-      }
+      };
     }
-    case 'error' : {
+    case "error": {
       return {
         ...state,
         status: {
           message: action.payload.message,
           fetch: false,
-          type: 'error'
+          type: "error",
         },
-      }
+      };
     }
-    case 'success' : {
+    case "success": {
       return {
         data: action.payload.data,
         status: {
           ...state.status,
           fetch: false,
-          type: 'success'
+          type: "success",
         },
-      }
+      };
     }
-    case 'refetch' : {
+    case "refetch": {
       return {
         ...state,
         status: {
           ...state.status,
           fetch: true,
         },
-      }
+      };
     }
-    case 'iddle' : {
+    case "iddle": {
       return {
         ...state,
         status: {
           ...state.status,
           fetch: false,
-          type: 'iddle'
+          type: "iddle",
         },
-      }
+      };
     }
-    default :
+    default:
       return state;
   }
-};
+}
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -89,12 +97,12 @@ function App() {
   });
   const [data, dispatch] = useReducer(AppReducer, {
     status: {
-      type: 'iddle', // iddle, loading, error success,
+      type: "iddle", // iddle, loading, error success,
       message: null,
       fetch: true,
     },
     data: null,
-  })
+  });
 
   // Masukan kedalam local
   useEffect(() => {
@@ -106,24 +114,31 @@ function App() {
     // let controller = new AbortController();
     async function fetchData() {
       try {
-        dispatch({type: 'loading'});
+        dispatch({ type: "loading" });
         let data = await (
           await fetch(
             "https://api.apify.com/v2/key-value-stores/tVaYRsPHLjNdNBu7S/records/LATEST?disableRedirect=true",
-            { method: "get", 
-            // signal: controller.signal 
-          }
+            {
+              method: "get",
+              // signal: controller.signal
+            }
           )
         ).json();
-          
-        dispatch({type: 'success', payload: {data, message: 'Berhasil Mengambil data'}})
+
+        dispatch({
+          type: "success",
+          payload: { data, message: "Berhasil Mengambil data" },
+        });
       } catch (err) {
-        dispatch({type: 'error', payload: {message: err?.message || "ADA ERROR SAAT REQUEST"}});
+        dispatch({
+          type: "error",
+          payload: { message: err?.message || "ADA ERROR SAAT REQUEST" },
+        });
         console.error(err);
       }
     }
-    
-    console.log(data.status, "STATUS")
+
+    console.log(data.status, "STATUS");
     if (data.status.type !== "loading" && data.status.fetch) fetchData();
     // return () => {
     //   controller.abort();
@@ -133,11 +148,24 @@ function App() {
   return (
     <ThemeProvider theme={mode ? theme.light : theme.dark}>
       <GlobalStyle />
-      <Container>
-        <Header data={data.data} mode={mode} setMode={setMode}></Header>
-        <Main data={data.data} status={data.status} dispatch={dispatch}></Main>
-        <Footer></Footer>
-      </Container>
+      <Router>
+        <Container>
+          <Header data={data.data} mode={mode} setMode={setMode}></Header>
+          <SwitchRouter>
+            <Route path="/profile">
+              <Profile />
+            </Route>
+            <Route path="/" exact>
+              <Main
+                data={data.data}
+                status={data.status}
+                dispatch={dispatch}
+              ></Main>
+            </Route>
+          </SwitchRouter>
+          <Footer></Footer>
+        </Container>
+      </Router>
     </ThemeProvider>
   );
 }
@@ -146,24 +174,27 @@ export default App;
 
 // Component
 const Header = React.memo(function Header({ data, mode, setMode }) {
+  const match = useRouteMatch("/");
   const dataDetail = useMemo(
-    () => !data ? { positif: 0, sembuh: 0, meninggal: 0 } :
-      data.reduce(
-        (prev, current) => {
-          return {
-            positif: Number.isInteger(current.infected)
-              ? prev.positif + current.infected
-              : prev.positif,
-            sembuh: Number.isInteger(current.recovered)
-              ? prev.sembuh + current.recovered
-              : prev.sembuh,
-            meninggal: Number.isInteger(current.deceased)
-              ? prev.meninggal + current.deceased
-              : prev.meninggal,
-          };
-        },
-        { positif: 0, sembuh: 0, meninggal: 0 }
-      ),
+    () =>
+      !data
+        ? { positif: 0, sembuh: 0, meninggal: 0 }
+        : data.reduce(
+            (prev, current) => {
+              return {
+                positif: Number.isInteger(current.infected)
+                  ? prev.positif + current.infected
+                  : prev.positif,
+                sembuh: Number.isInteger(current.recovered)
+                  ? prev.sembuh + current.recovered
+                  : prev.sembuh,
+                meninggal: Number.isInteger(current.deceased)
+                  ? prev.meninggal + current.deceased
+                  : prev.meninggal,
+              };
+            },
+            { positif: 0, sembuh: 0, meninggal: 0 }
+          ),
     [data]
   );
 
@@ -172,6 +203,7 @@ const Header = React.memo(function Header({ data, mode, setMode }) {
       <HeaderHeader>
         <h1>Pantau Corona</h1>
         <ToggleParent>
+          <LinkProfile />
           {/* <Toggle>
             <span className="first">Indonesia</span>
             <Switch
@@ -188,31 +220,33 @@ const Header = React.memo(function Header({ data, mode, setMode }) {
           </Toggle>
         </ToggleParent>
       </HeaderHeader>
-      <HeaderMain>
-        <Card>
-          <span className="icon">😷</span>
-          <div className="main-content">
-            <div className="title">Kasus Positif</div>
-            <div className="kasus">{formatPrice(dataDetail.positif)}</div>
-          </div>
-        </Card>
+      {match && match?.isExact && (
+        <HeaderMain>
+          <Card>
+            <span className="icon">😷</span>
+            <div className="main-content">
+              <div className="title">Kasus Positif</div>
+              <div className="kasus">{formatPrice(dataDetail.positif)}</div>
+            </div>
+          </Card>
 
-        <Card>
-          <span className="icon">😊</span>
-          <div className="main-content">
-            <div className="title">Kasus Sembuh</div>
-            <div className="kasus">{formatPrice(dataDetail.sembuh)}</div>
-          </div>
-        </Card>
+          <Card>
+            <span className="icon">😊</span>
+            <div className="main-content">
+              <div className="title">Kasus Sembuh</div>
+              <div className="kasus">{formatPrice(dataDetail.sembuh)}</div>
+            </div>
+          </Card>
 
-        <Card>
-          <span className="icon">💀</span>
-          <div className="main-content">
-            <div className="title">Kasus Kematian</div>
-            <div className="kasus">{formatPrice(dataDetail.meninggal)}</div>
-          </div>
-        </Card>
-      </HeaderMain>
+          <Card>
+            <span className="icon">💀</span>
+            <div className="main-content">
+              <div className="title">Kasus Kematian</div>
+              <div className="kasus">{formatPrice(dataDetail.meninggal)}</div>
+            </div>
+          </Card>
+        </HeaderMain>
+      )}
       {/* <HeaderLastUpdate>
         Last Update{" "}
         
@@ -221,85 +255,118 @@ const Header = React.memo(function Header({ data, mode, setMode }) {
   );
 });
 
-const Main = React.memo(function Main({status, data, dispatch}) {
+const Main = React.memo(function Main({ status, data, dispatch }) {
   switch (status.type) {
-    case 'loading' : {
+    case "loading": {
       return (
         <MainComponent>
           <MainComponentMain>
             <div className="loader"></div>
           </MainComponentMain>
-        </MainComponent>)
-    } 
-    case 'error' : {
+        </MainComponent>
+      );
+    }
+    case "error": {
       return (
         <MainComponent>
           <MainComponentMain>
             <MainComponentMainAnother>
-              <h1>Terdapat Error saat melakukan data {':('}</h1>
-              <p>{"Penyebab Error : "}{status.message}</p>
-              <button onClick={() => dispatch({type: 'refetch'})}>Klik disini untuk Coba Lagi</button>
+              <h1>Terdapat Error saat melakukan data {":("}</h1>
+              <p>
+                {"Penyebab Error : "}
+                {status.message}
+              </p>
+              <button onClick={() => dispatch({ type: "refetch" })}>
+                Klik disini untuk Coba Lagi
+              </button>
             </MainComponentMainAnother>
           </MainComponentMain>
         </MainComponent>
-      )
+      );
     }
-    case 'success' : {
-      // Jika data kosong (belum melakukan request, karena nilai defaultnya adalah null) atau panjang data == 0 
-      if (!data || (Array.isArray(data) && data.length === 0)) {  
+    case "success": {
+      // Jika data kosong (belum melakukan request, karena nilai defaultnya adalah null) atau panjang data == 0
+      if (!data || (Array.isArray(data) && data.length === 0)) {
         return (
           <MainComponent>
             <MainComponentMain>
               <MainComponentMainAnother>
-                <h1>{!data ? "Data Tidak ditemukan" : (Array.isArray(data) && data.length === 0) ? "Data Kosong" : "Ga bisa nampilin data"} {' :('}</h1>
+                <h1>
+                  {!data
+                    ? "Data Tidak ditemukan"
+                    : Array.isArray(data) && data.length === 0
+                    ? "Data Kosong"
+                    : "Ga bisa nampilin data"}{" "}
+                  {" :("}
+                </h1>
               </MainComponentMainAnother>
             </MainComponentMain>
           </MainComponent>
-        )
+        );
       }
 
-
-      return (<MainComponent>
-         <MainComponentMain>
-          <MainHeader>
-            <MainHeading>Nama</MainHeading>
-            <MainHeading>Positif</MainHeading>
-            <MainHeading>Sembuh</MainHeading>
-            <MainHeading>Meninggal</MainHeading>
-          </MainHeader>
-          <MainMain>
-            {data &&
-              data.map((val, idx) => {
-                return (
-                  <div key={`ITEM-${idx}-${idx + 10}`}>
-                    <span>{val.country}</span>
-                    <span>{(val.infected !== "NA" && val?.infected) ? formatPrice(val.infected) : '-'}</span>
-                    <span>{(val.recovered !== "NA" && val?.recovered) ? formatPrice(val.recovered) : '-'}</span>
-                    <span>{(val.deceased !== "NA" && val?.deceased) ? formatPrice(val.deceased) : '-'}</span>
-                  </div>
-                );
-              })}
-          </MainMain>
-        </MainComponentMain>
-      </MainComponent>)
+      return (
+        <MainComponent>
+          <MainComponentMain>
+            <MainHeader>
+              <MainHeading>Nama</MainHeading>
+              <MainHeading>Positif</MainHeading>
+              <MainHeading>Sembuh</MainHeading>
+              <MainHeading>Meninggal</MainHeading>
+            </MainHeader>
+            <MainMain>
+              {data &&
+                data.map((val, idx) => {
+                  return (
+                    <div key={`ITEM-${idx}-${idx + 10}`}>
+                      <span>{val.country}</span>
+                      <span>
+                        {val.infected !== "NA" && val?.infected
+                          ? formatPrice(val.infected)
+                          : "-"}
+                      </span>
+                      <span>
+                        {val.recovered !== "NA" && val?.recovered
+                          ? formatPrice(val.recovered)
+                          : "-"}
+                      </span>
+                      <span>
+                        {val.deceased !== "NA" && val?.deceased
+                          ? formatPrice(val.deceased)
+                          : "-"}
+                      </span>
+                    </div>
+                  );
+                })}
+            </MainMain>
+          </MainComponentMain>
+        </MainComponent>
+      );
     }
-    default : {
-      return <></>
+    default: {
+      return <></>;
     }
   }
-})
+});
+
+function LinkProfile() {
+  const match = useRouteMatch('/profile');
+  return (
+    <ProfileLink>
+      <Link to={match ? "/" : "/profile"}>
+        {match ? "Home" : "Profile" }
+      </Link>
+    </ProfileLink>
+  );
+}
 
 const Footer = React.memo(function Footer() {
-  return (
-    <FooterComponent>
-      Made By ♥
-    </FooterComponent>
-  );
-})
+  return <FooterComponent>Made By ♥</FooterComponent>;
+});
 
 function formatPrice(value) {
-  let val = Math.ceil(value).toFixed(0).replace('.',',');
-   return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+  let val = Math.ceil(value).toFixed(0).replace(".", ",");
+  return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
 // Style Component
@@ -386,8 +453,9 @@ const Container = styled.div`
   margin: 0.8rem auto;
   border-radius: 0.8rem;
   padding: 1.5rem;
-  height: 90vh;
-  display: grid;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
   box-sizing: border-box;
   background-color: ${({ theme }) => theme.container.backgroundColor};
@@ -508,11 +576,38 @@ const Toggle = styled.div`
   }
 `;
 
+const ProfileLink = styled.div`
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  // margin-right: 20px;
+  font-weight: bold;
+
+  & a {
+    color: ${({ theme }) => theme.container.color};
+    font-weight: normal;
+    font-size: 20px;
+    cursor: pointer;
+    text-decoration: underline;
+  
+    &:hover {
+      text-decoration: none;
+    }
+  
+  }
+  @media screen and (min-width: 1280px) {
+    & a{
+      font-size: 24px;
+    }
+  }
+`;
+
 const ToggleParent = styled.div`
   display: flex;
   @media (max-width: 576px) {
     & {
-      justify-content: space-between;
+      justify-content: center;
       width: 100%;
     }
   }
@@ -542,7 +637,6 @@ const MainComponent = styled(Box)`
   }
 `;
 
-
 const MainComponentMainAnother = styled.div`
   width: 100%;
   height: 100%;
@@ -557,12 +651,13 @@ const MainComponentMainAnother = styled.div`
   }
 
   p {
-    font-family: 'Patrick Hand', cursive;
+    font-family: "Patrick Hand", cursive;
     // font-size: 24px;
     font-size: 16px;
   }
 
-  h1, p {
+  h1,
+  p {
     margin: 0;
   }
 
@@ -570,20 +665,22 @@ const MainComponentMainAnother = styled.div`
     background-color: transparent;
     border: 0;
     appearance: none;
-    color: white;
+    color: ${({ theme }) => theme.container.color};
     // font-size: 24px;
     font-size: 16px;
     text-decoration: underline;
     cursor: pointer;
-    font-family: 'Patrick Hand', cursive;
+    font-family: "Patrick Hand", cursive;
   }
-  
+
   & button:hover {
     text-decoration: none;
   }
 
   @media (min-width: 640px) {
-    h1, button, p {
+    h1,
+    button,
+    p {
       font-size: 1.2em;
     }
   }
@@ -593,7 +690,8 @@ const MainComponentMainAnother = styled.div`
       font-size: 1.5em;
     }
 
-    button, p {
+    button,
+    p {
       font-size: 24px;
     }
   }
