@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import styled from "styled-components";
 import Rhafael from "./rhafael";
+import Budi from "./budi";
 
 export default function Elbi() {
   const match = useRouteMatch();
@@ -26,6 +27,9 @@ export default function Elbi() {
             </Route>
             <Route path={`${match.path}/rhafael`}>
               <Rhafael />
+            </Route>
+            <Route path={`${match.path}/budi`}>
+              <Budi />
             </Route>
           </Switch>
         </ContainerContent>
