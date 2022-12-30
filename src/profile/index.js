@@ -34,6 +34,7 @@ export default function Elbi() {
           </Switch>
         </ContainerContent>
         <ContainerLink>
+          
           <Link to={`${match.url}/rhafael`}>Rhafael Bijaksana</Link>
           {","}
           <Link to={`${match.url}`}>Kembali Ke Kumpulan Profile</Link>
