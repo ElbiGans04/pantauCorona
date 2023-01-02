@@ -8,6 +8,7 @@ import {
 import styled from "styled-components";
 import Rhafael from "./rhafael";
 import Budi from "./budi";
+import Egi from "./egi";
 
 export default function Elbi() {
   const match = useRouteMatch();
@@ -31,11 +32,16 @@ export default function Elbi() {
             <Route path={`${match.path}/budi`}>
               <Budi />
             </Route>
+            <Route path={`${match.path}/egi`}>
+              <Egi />
+            </Route>
           </Switch>
         </ContainerContent>
         <ContainerLink>
           
           <Link to={`${match.url}/rhafael`}>Rhafael Bijaksana</Link>
+          {","}
+          <Link to={`${match.url}/egi`}>Egi Permana</Link>
           {","}
           <Link to={`${match.url}`}>Kembali Ke Kumpulan Profile</Link>
         </ContainerLink>
