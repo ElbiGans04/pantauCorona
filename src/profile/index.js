@@ -8,6 +8,7 @@ import {
 import styled from "styled-components";
 import Rhafael from "./rhafael";
 import Budi from "./budi";
+import NurHafidzah from "./nurhafidzah";
 
 export default function Elbi() {
   const match = useRouteMatch();
@@ -30,6 +31,9 @@ export default function Elbi() {
             </Route>
             <Route path={`${match.path}/budi`}>
               <Budi />
+            </Route>
+            <Route path={`${match.path}/nurhafidzah`}>
+              <NurHafidzah />
             </Route>
           </Switch>
         </ContainerContent>
