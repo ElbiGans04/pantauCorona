@@ -1,10 +1,10 @@
 import styled from "styled-components"
 
-export default function Gilang () {
+export default function NurHafidzah () {
     return (
         <Container>
-            <h1>Gilang Adriana</h1>
-            <p>Halo Semua, Nama saya adalah Gilang Adriana, Saya adalah seorang mahasiswa. Saya Senang belajar akan hal baru
+            <h1>Nur Hafidzah Safitri</h1>
+            <p>Halo Semua, Nama saya adalah Nur Hafidzah Safitri, Saya adalah seorang mahasiswa. Saya Senang belajar akan hal baru
                 , Salam Kenal Semua {":)"}
             </p>
         </Container>

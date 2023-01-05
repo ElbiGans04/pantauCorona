@@ -9,6 +9,8 @@ import styled from "styled-components";
 import Rhafael from "./rhafael";
 import Budi from "./budi";
 import Egi from "./egi";
+import NurHafidzah from "./nurhafidzah";
+import Gilang from './gilang'
 
 export default function Elbi() {
   const match = useRouteMatch();
@@ -35,6 +37,12 @@ export default function Elbi() {
             <Route path={`${match.path}/egi`}>
               <Egi />
             </Route>
+            <Route path={`${match.path}/nurhafidzah`}>
+              <NurHafidzah />
+            </Route>
+            <Route path={`${match.path}/gilang`}>
+              <Gilang />
+            </Route>
           </Switch>
         </ContainerContent>
         <ContainerLink>
@@ -42,6 +50,10 @@ export default function Elbi() {
           <Link to={`${match.url}/rhafael`}>Rhafael Bijaksana</Link>
           {","}
           <Link to={`${match.url}/egi`}>Egi Permana</Link>
+          {","}
+          <Link to={`${match.url}/nurhafidzah`}>Nur Hafidzah</Link>
+          {","}
+          <Link to={`${match.url}/gilang`}>Gilang Adriana</Link>
           {","}
           <Link to={`${match.url}`}>Kembali Ke Kumpulan Profile</Link>
         </ContainerLink>
